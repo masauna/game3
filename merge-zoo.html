@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>동물 합체 동물원</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#3b3360;--card:rgba(255,255,255,.88)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#cfe8ff;font-family:'Jua','Malgun Gothic',sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none}
+  canvas{position:fixed;inset:0;display:block;touch-action:none}
+  #top{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:10px 12px;pointer-events:none}
+  .pill{pointer-events:auto;text-decoration:none;color:var(--ink);background:var(--card);padding:7px 13px;border-radius:999px;font-size:15px;box-shadow:0 3px 0 rgba(0,0,0,.1);border:0;font-family:inherit;white-space:nowrap;cursor:pointer}
+  #hearts{font-size:22px;padding:5px 16px}
+  #hearts.bump{animation:bump .3s}
+  @keyframes bump{40%{transform:scale(1.15)}}
+  .sp{flex:1}
+  #side{position:fixed;left:12px;bottom:40px;display:flex;flex-direction:column;gap:8px}
+  .sbtn{font-family:inherit;border:0;background:#fff;color:var(--ink);font-size:15px;padding:8px 12px;border-radius:16px;box-shadow:0 4px 0 #b6c8e8;cursor:pointer;transition:transform .15s}
+  .sbtn b{font-size:22px;font-weight:normal;display:block}
+  .sbtn:hover{transform:translateY(-3px)}.sbtn:active{transform:translateY(2px)}
+  .sheet{position:fixed;left:50%;bottom:0;width:min(520px,100%);transform:translate(-50%,0);background:#f8f9ff;border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(40,30,90,.25);transition:transform .4s cubic-bezier(.3,1.3,.5,1);max-height:75vh;display:flex;flex-direction:column}
+  .sheet.closed{transform:translate(-50%,110%)}
+  .sheet h3{margin:14px 16px 4px;display:flex;justify-content:space-between;align-items:center}
+  .sheet h3 button{font-family:inherit;border:0;background:#e7ecff;border-radius:12px;width:38px;height:34px;font-size:16px;cursor:pointer}
+  .list{overflow:auto;padding:8px 14px 18px;display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 2px 0 rgba(0,0,0,.05)}
+  .item .em{font-size:32px;width:44px;text-align:center}
+  .item .info{flex:1;line-height:1.3}.item .info small{display:block;color:#7b78a0;font-size:13px}
+  .item button{font-family:inherit;border:0;background:#ff9ec7;color:#fff;font-size:15px;padding:9px 12px;border-radius:12px;cursor:pointer;box-shadow:0 3px 0 #e8649b;white-space:nowrap}
+  .item button:disabled{background:#e9ecef;color:#adb5bd;box-shadow:0 3px 0 #ced4da;cursor:not-allowed}
+  .dex{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px 14px 20px;overflow:auto}
+  .dx{background:#fff;border-radius:16px;padding:10px 4px;text-align:center;font-size:13px}
+  .dx .e{font-size:38px;display:block;transition:transform .2s}
+  .dx:hover .e{transform:scale(1.2) rotate(-6deg)}
+  .dx.lock .e{filter:brightness(0);opacity:.2}
+  #disc{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,20,70,.5);overflow:hidden}
+  #disc.gone{display:none}
+  .rays{position:absolute;width:200vmax;height:200vmax;background:repeating-conic-gradient(rgba(255,240,170,.35) 0 10deg,transparent 10deg 20deg);animation:rot 8s linear infinite;border-radius:50%}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .dcard{position:relative;background:#fff;border-radius:28px;padding:22px 28px;text-align:center;max-width:320px;animation:cardIn .6s cubic-bezier(.3,1.7,.5,1)}
+  @keyframes cardIn{from{transform:scale(.2) rotate(-25deg);opacity:0}}
+  .dcard .new{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#ff5c8a;color:#fff;padding:4px 14px;border-radius:999px;font-size:16px;animation:pulse 1s infinite}
+  @keyframes pulse{50%{transform:translateX(-50%) scale(1.12)}}
+  .dcard .dem{font-size:96px;animation:dbounce 1.4s ease-in-out infinite;display:inline-block}
+  @keyframes dbounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-14px) rotate(4deg)}}
+  .dcard h2{margin:4px 0}.dcard p{color:#6b6890;margin:6px 0 10px}
+  .dcard .bonus{color:#e8649b;font-size:20px;margin-bottom:12px}
+  .dcard button{font-family:inherit;border:0;background:#ffd43b;color:var(--ink);font-size:18px;padding:10px 28px;border-radius:16px;box-shadow:0 4px 0 #e0a800;cursor:pointer}
+  #toasts{position:fixed;top:16%;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;gap:6px}
+  .toast{background:#fff;padding:9px 18px;border-radius:999px;font-size:17px;box-shadow:0 6px 20px rgba(40,30,90,.18);animation:pop 2.4s forwards}
+  @keyframes pop{0%{transform:scale(0);opacity:0}12%{transform:scale(1.12);opacity:1}20%{transform:scale(1)}85%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+  <a class="pill" href="index.html">← 게임 목록</a>
+  <div class="pill" id="hearts">💗 <b id="hTxt">0</b></div>
+  <div class="pill" id="rate">초당 0</div>
+  <div class="sp"></div>
+</div>
+<div id="side">
+  <button class="sbtn" id="upBtn"><b>⬆️</b>강화</button>
+  <button class="sbtn" id="dexBtn"><b>📖</b>도감</button>
+</div>
+<div class="sheet closed" id="upSheet"><h3>⬆️ 강화 <button data-close>✕</button></h3><div class="list" id="upList"></div></div>
+<div class="sheet closed" id="dexSheet"><h3><span>📖 동물 도감 <small id="dexCnt"></small></span><button data-close>✕</button></h3><div class="dex" id="dexList"></div></div>
+<div id="disc" class="gone"><div class="rays"></div><div class="dcard"><div class="new">새 동물 발견!</div><div class="dem" id="dEm">🐼</div><h2 id="dName">판다</h2><p id="dDesc"></p><div class="bonus" id="dBonus"></div><button id="dOk">좋아요!</button></div></div>
+<div id="toasts"></div>
+<script>
+'use strict';
+const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t;
+const outElastic = t => t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (TAU / 3)) + 1;
+const FONT = '"Jua","Malgun Gothic",sans-serif', EMOJI = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+const $ = s => document.querySelector(s);
+let AC = null, master = null;
+function initAudio() { if (AC) { if (AC.state === 'suspended') AC.resume(); return; } try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.3; master.connect(AC.destination); } catch (e) { AC = null; } }
+function tone(f, d, type = 'sine', v = 0.2, slide = 0, delay = 0) { if (!AC) return; const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + d); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02); }
+
+const A = [['🥚', '알', '따뜻하게 품어 주면 무언가 태어날 것 같아요.'], ['🐣', '병아리', '삐약삐약! 세상 구경이 신기해요.'], ['🐰', '토끼', '깡총깡총, 당근을 제일 좋아해요.'], ['🐱', '고양이', '햇볕 아래 낮잠이 최고예요.'], ['🐶', '강아지', '꼬리를 흔들며 반겨 줘요.'], ['🦊', '여우', '영리하고 호기심이 많아요.'], ['🐼', '판다', '대나무만 있으면 행복해요.'], ['🐧', '펭귄', '뒤뚱뒤뚱 걸어도 수영은 최고!'], ['🦁', '사자', '동물원의 든든한 대장이에요.'], ['🐘', '코끼리', '긴 코로 시원하게 물을 뿜어요.'], ['🦒', '기린', '하늘과 가장 가까운 친구예요.'], ['🦄', '유니콘', '전설 속 동물! 무지개를 몰고 다녀요.']];
+const MAXLV = A.length - 1;
+const DIMS = [[4, 5], [5, 6], [6, 7]], BOARD_COST = [0, 400, 8000];
+const prodRate = lv => lv <= 0 ? 0 : 0.2 * Math.pow(2.2, lv - 1);
+const sellVal = lv => Math.max(1, Math.round(2 * Math.pow(2.2, lv)));
+const UPS = {
+  spd: { n: '알 생성 속도', e: '⏱️', max: 12, cost: k => Math.round(15 * Math.pow(2, k)), desc: k => `충전 시간 ${cd(k).toFixed(1)}초 → ${cd(k + 1).toFixed(1)}초` },
+  cap: { n: '둥지 최대 충전', e: '🪺', max: 6, cost: k => Math.round(40 * Math.pow(3, k)), desc: k => `최대 ${3 + k}개 → ${4 + k}개` },
+  luck: { n: '행운의 둥지', e: '🍀', max: 8, cost: k => Math.round(60 * Math.pow(2.6, k)), desc: k => `병아리가 바로 나올 확률 ${k * 6}% → ${(k + 1) * 6}%` },
+};
+const cd = k => 6 * Math.pow(0.86, k);
+
+const DEF = { hearts: 0, size: 0, board: null, up: { spd: 0, cap: 0, luck: 0 }, charges: 3, chargeT: 0, dex: [true], last: Date.now() };
+function load() { try { const s = JSON.parse(localStorage.getItem('pets_merge')); if (s && Array.isArray(s.board)) return Object.assign(JSON.parse(JSON.stringify(DEF)), s); } catch (e) { } return JSON.parse(JSON.stringify(DEF)); }
+let M = load();
+if (!M.board) { const [c, r] = DIMS[0]; M.board = new Array(c * r).fill(-1); M.board[c + 1] = 0; M.board[c + 2] = 0; }
+
+const cv = $('#c'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, L = {};
+let board = [];  // {lv, ax, ay, sc, pop, ph, hop, hv, emitT}
+function cells() { return DIMS[M.size][0] * DIMS[M.size][1]; }
+function layout() {
+  const [c, r] = DIMS[M.size], top = 70, bot = 140, cs = Math.min((W - 24) / c, (H - top - bot) / r, 96);
+  L = { c, r, cs, ox: (W - cs * c) / 2, oy: top + ((H - top - bot) - cs * r) / 2, nest: { x: W / 2, y: H - 72 }, trash: { x: W - 56, y: H - 72 } };
+}
+function center(i) { return { x: L.ox + (i % L.c + 0.5) * L.cs, y: L.oy + (Math.floor(i / L.c) + 0.5) * L.cs }; }
+function cellAt(x, y) { const col = Math.floor((x - L.ox) / L.cs), row = Math.floor((y - L.oy) / L.cs); if (col < 0 || row < 0 || col >= L.c || row >= L.r) return -1; return row * L.c + col; }
+function mk(lv, i, from) { const p = from || center(i); return { lv, ax: p.x, ay: p.y, pop: 0, ph: Math.random() * TAU, hop: 0, hv: 0, emitT: rand(1, 4) }; }
+function resize() {
+  if (!innerWidth || !innerHeight) return; DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cv.style.width = W + 'px'; cv.style.height = H + 'px'; layout();
+  board.forEach((b, i) => { if (b) { const p = center(i); b.ax = p.x; b.ay = p.y; } });
+}
+resize();
+board = M.board.map((lv, i) => lv >= 0 ? mk(lv, i) : null);
+
+const G = { t: 0, drag: null, disp: M.hearts, parts: [], fx: [], shake: 0, save: 3, discQ: [], ptr: { x: 0, y: 0 } };
+const bgBlobs = Array.from({ length: 9 }, () => ({ x: Math.random(), y: Math.random(), r: rand(60, 160), h: rand(180, 330), sp: rand(0.004, 0.012) }));
+function save() { M.board = board.map(b => b ? b.lv : -1); M.last = Date.now(); try { localStorage.setItem('pets_merge', JSON.stringify(M)); } catch (e) { } }
+function toast(m) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = m; $('#toasts').appendChild(d); setTimeout(() => d.remove(), 2500); }
+function fmt(n) { n = Math.floor(n); if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B'; if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e4) return (n / 1e3).toFixed(1) + 'K'; return n.toLocaleString(); }
+function bump() { const h = $('#hearts'); h.classList.remove('bump'); void h.offsetWidth; h.classList.add('bump'); }
+function rate() { return board.reduce((s, b) => s + (b ? prodRate(b.lv) : 0), 0); }
+function addP(o) { if (G.parts.length < 500) G.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, max: 1, g: 0, size: 10, rot: 0, vr: 0 }, o)); }
+function burst(x, y, lv) {
+  const cols = ['#ffd43b', '#ff8fb1', '#74c0fc', '#b197fc', '#8ce99a'], n = 14 + lv * 3;
+  for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = rand(120, 260 + lv * 25); addP({ k: 'star', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.5, 0.9), max: 0.9, size: rand(5, 10), col: cols[i % 5], vr: rand(-8, 8), drag: 0.92 }); }
+  addP({ k: 'ring', x, y, life: 0.5, max: 0.5, size: L.cs * (0.8 + lv * 0.08), col: '#ffffff' });
+  addP({ k: 'ring', x, y, life: 0.7, max: 0.7, size: L.cs * (1.2 + lv * 0.1), col: cols[lv % 5] });
+  addP({ k: 'flash', x, y, life: 0.25, max: 0.25, size: L.cs * 0.9 });
+  if (lv >= 6) G.shake = Math.min(14, lv * 1.2);
+}
+function txt(x, y, s, col = '#3b3360', size = 18) { addP({ k: 'txt', x, y, vy: -60, life: 1, max: 1, txt: s, col, size }); }
+
+// ---------- 생성 ----------
+function emptyCells() { const e = []; board.forEach((b, i) => { if (!b) e.push(i); }); return e; }
+function spawnEgg(auto) {
+  const e = emptyCells(); if (!e.length) { if (!auto) { toast('판이 꽉 찼어요! 합치거나 🗑️로 보내요'); tone(220, 0.2, 'square', 0.08); } return false; }
+  const i = e[(Math.random() * e.length) | 0], k = M.up.luck, lv = Math.random() < k * 0.06 ? 1 : 0;
+  board[i] = mk(lv, i, { x: L.nest.x, y: L.nest.y }); board[i].fly = { t: 0, sx: L.nest.x, sy: L.nest.y };
+  tone(500, 0.12, 'sine', 0.14, 1.6); if (lv === 1) txt(L.nest.x, L.nest.y - 40, '행운! 🍀', '#2f9e44', 18);
+  G.nestHop = 1; return true;
+}
+function merge(i, j, from) {
+  const lv = board[j].lv + 1, c = center(j);
+  G.fx.push({ k: 'suck', e: A[lv - 1][0], ax: from.x, ay: from.y, bx: c.x, by: c.y, t: 0 });
+  board[i] = null; board[j] = mk(lv, j); board[j].pop = -0.15;
+  setTimeout(() => {
+    burst(c.x, c.y, lv); txt(c.x, c.y - L.cs * 0.55, A[lv][1] + '!', '#5f3dc4', 18 + lv);
+    [0, 4, 7].forEach((s, k) => tone(392 * Math.pow(2, (lv + s) / 12), 0.18, 'triangle', 0.13, 0, k * 0.05));
+    if (!M.dex[lv]) { M.dex[lv] = true; const bonus = Math.round(10 * Math.pow(2.4, lv)); M.hearts += bonus; G.discQ.push({ lv, bonus }); setTimeout(showDisc, 350); }
+  }, 150);
+  save();
+}
+function showDisc() {
+  if (!$('#disc').classList.contains('gone') || !G.discQ.length) return; const d = G.discQ.shift();
+  $('#dEm').textContent = A[d.lv][0]; $('#dName').textContent = A[d.lv][1]; $('#dDesc').textContent = A[d.lv][2]; $('#dBonus').textContent = `보너스 💗 +${fmt(d.bonus)}`;
+  const c = $('#disc'); c.classList.remove('gone'); const card = c.querySelector('.dcard'); card.style.animation = 'none'; void card.offsetWidth; card.style.animation = '';
+  [523, 659, 784, 1046, 1318].forEach((f, k) => tone(f, 0.2, 'triangle', 0.14, 0, k * 0.08));
+}
+$('#dOk').addEventListener('click', () => { $('#disc').classList.add('gone'); bump(); tone(800, 0.1, 'sine', 0.12, 1.5); setTimeout(showDisc, 200); });
+
+// ---------- 입력 ----------
+cv.addEventListener('pointerdown', e => {
+  initAudio(); document.querySelectorAll('.sheet').forEach(s => s.classList.add('closed'));
+  const x = e.clientX, y = e.clientY; G.ptr = { x, y };
+  if (Math.hypot(x - L.nest.x, y - L.nest.y) < 46) { if (M.charges > 0) { if (spawnEgg(false)) M.charges--; } else { toast('둥지가 충전 중이에요 ⏱️'); tone(260, 0.12, 'square', 0.06); } G.nestHop = 1; return; }
+  const i = cellAt(x, y); if (i < 0 || !board[i]) return;
+  G.drag = { i, x, y, sx: x, sy: y, moved: false }; tone(700, 0.05, 'sine', 0.08, 1.2);
+});
+addEventListener('pointermove', e => { G.ptr = { x: e.clientX, y: e.clientY }; const d = G.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY; if (Math.hypot(d.x - d.sx, d.y - d.sy) > 8) d.moved = true; });
+addEventListener('pointerup', e => {
+  const d = G.drag; if (!d) return; G.drag = null; const it = board[d.i]; if (!it) return;
+  if (!d.moved) { it.hv = -260; tone(900, 0.06, 'triangle', 0.1, 1.4); if (it.lv > 0) { const v = Math.max(1, Math.round(prodRate(it.lv) * 2)); M.hearts += v; txt(it.ax, it.ay - L.cs * 0.4, '+' + fmt(v) + '💗', '#e8649b', 15); } else txt(it.ax, it.ay - L.cs * 0.4, '톡톡!', '#868e96', 14); return; }
+  it.ax = d.x; it.ay = d.y;
+  if (Math.hypot(d.x - L.trash.x, d.y - L.trash.y) < 50) { const v = sellVal(it.lv); M.hearts += v; board[d.i] = null; txt(L.trash.x, L.trash.y - 50, '+' + fmt(v) + '💗', '#e8649b', 18); burst(L.trash.x, L.trash.y, 0); tone(300, 0.15, 'sine', 0.12, 0.5); bump(); save(); return; }
+  const j = cellAt(d.x, d.y);
+  if (j < 0 || j === d.i) return;
+  const tgt = board[j];
+  if (!tgt) { board[j] = it; board[d.i] = null; tone(520, 0.06, 'sine', 0.08); }
+  else if (tgt.lv === it.lv && it.lv < MAXLV) merge(d.i, j, { x: d.x, y: d.y });
+  else { board[j] = it; board[d.i] = tgt; tone(440, 0.06, 'sine', 0.08); if (tgt.lv === it.lv) toast('유니콘은 이미 최고 단계예요! 🦄'); }
+  save();
+});
+
+// ---------- 강화 / 도감 ----------
+function renderUp() {
+  let h = '';
+  for (const k in UPS) { const u = UPS[k], lv = M.up[k], max = lv >= u.max, c = u.cost(lv); h += `<div class="item"><span class="em">${u.e}</span><div class="info"><b>${u.n} Lv.${lv}</b><small>${max ? '최고 레벨!' : u.desc(lv)}</small></div><button data-up="${k}" ${max || M.hearts < c ? 'disabled' : ''}>${max ? 'MAX' : '💗 ' + fmt(c)}</button></div>`; }
+  const nb = BOARD_COST[M.size + 1];
+  h += `<div class="item"><span class="em">🧩</span><div class="info"><b>판 넓히기</b><small>${nb ? `${DIMS[M.size].join('×')} → ${DIMS[M.size + 1].join('×')}` : '최대 크기예요!'}</small></div><button data-up="board" ${!nb || M.hearts < nb ? 'disabled' : ''}>${nb ? '💗 ' + fmt(nb) : 'MAX'}</button></div>`;
+  $('#upList').innerHTML = h;
+}
+function renderDex() { let n = 0; $('#dexList').innerHTML = A.map((a, i) => { const k = !!M.dex[i]; if (k) n++; return `<div class="dx ${k ? '' : 'lock'}"><span class="e">${a[0]}</span>${k ? a[1] : '???'}</div>`; }).join(''); $('#dexCnt').textContent = `${n} / ${A.length}`; }
+$('#upBtn').addEventListener('click', () => { initAudio(); $('#dexSheet').classList.add('closed'); renderUp(); $('#upSheet').classList.toggle('closed'); tone(700, 0.08, 'triangle', 0.1, 1.3); });
+$('#dexBtn').addEventListener('click', () => { initAudio(); $('#upSheet').classList.add('closed'); renderDex(); $('#dexSheet').classList.toggle('closed'); tone(700, 0.08, 'triangle', 0.1, 1.3); });
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.sheet').classList.add('closed')));
+$('#upList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-up]'); if (!b || b.disabled) return; const k = b.dataset.up;
+  if (k === 'board') {
+    const c = BOARD_COST[M.size + 1]; if (!c || M.hearts < c) return; M.hearts -= c;
+    const [oc, or] = DIMS[M.size]; M.size++; const [nc, nr] = DIMS[M.size]; const nb = new Array(nc * nr).fill(null);
+    board.forEach((it, i) => { if (it) nb[Math.floor(i / oc) * nc + (i % oc)] = it; }); board = nb; layout();
+    board.forEach((it, i) => { if (it) { it.hv = -200; } }); toast('🧩 판이 넓어졌어요!'); G.shake = 6;
+  } else { const u = UPS[k], c = u.cost(M.up[k]); if (M.up[k] >= u.max || M.hearts < c) return; M.hearts -= c; M.up[k]++; toast(`${u.e} ${u.n} Lv.${M.up[k]}!`); }
+  [523, 659, 784].forEach((f, i) => tone(f, 0.14, 'triangle', 0.13, 0, i * 0.07)); renderUp(); save();
+});
+
+// ---------- 업데이트 ----------
+function update(dt) {
+  G.t += dt; M.hearts += rate() * dt;
+  const cap = 3 + M.up.cap, c = cd(M.up.spd);
+  M.chargeT += dt; if (M.chargeT >= c) { M.chargeT = 0; if (M.charges < cap) { M.charges++; tone(1000, 0.05, 'sine', 0.06); } else spawnEgg(true); }
+  G.nestHop = Math.max(0, (G.nestHop || 0) - dt * 3);
+  board.forEach((b, i) => {
+    if (!b) return; const p = center(i);
+    if (b.fly) { b.fly.t += dt * 2.5; const k = Math.min(1, b.fly.t); b.ax = lerp(b.fly.sx, p.x, k); b.ay = lerp(b.fly.sy, p.y, k) - Math.sin(k * Math.PI) * 90; if (k >= 1) { b.fly = null; b.hv = -180; addP({ k: 'ring', x: p.x, y: p.y, life: 0.35, max: 0.35, size: L.cs * 0.6, col: '#fff' }); } }
+    else if (!(G.drag && G.drag.i === i)) { const k = 1 - Math.exp(-dt * 14); b.ax = lerp(b.ax, p.x, k); b.ay = lerp(b.ay, p.y, k); }
+    b.pop += dt; b.hv += 1800 * dt; b.hop += b.hv * dt; if (b.hop > 0) { b.hop = 0; b.hv = 0; }
+    if (Math.random() < dt * 0.08 && b.hop === 0 && !b.fly) b.hv = -150;
+    if (b.lv > 0) { b.emitT -= dt; if (b.emitT <= 0) { b.emitT = rand(3, 6); addP({ k: 'emo', txt: '💗', x: b.ax + rand(-10, 10), y: b.ay - L.cs * 0.3, vy: -50, vx: rand(-10, 10), life: 1.2, max: 1.2, size: 12 + Math.min(b.lv, 8) }); } }
+  });
+  for (const f of G.fx) f.t += dt; G.fx = G.fx.filter(f => f.t < 0.15);
+  for (const p of G.parts) { p.life -= dt; p.vy += p.g * dt; if (p.drag) { const k = Math.pow(p.drag, dt * 60); p.vx *= k; p.vy *= k; } p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+  G.parts = G.parts.filter(p => p.life > 0);
+  G.shake = Math.max(0, G.shake - dt * 30);
+  G.save -= dt; if (G.save <= 0) { G.save = 4; save(); }
+}
+
+// ---------- 그리기 ----------
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function starPath(x, y, ro, ri) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? ri : ro; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); }
+function emoji(e, x, y, s, rot = 0, sx = 1, sy = 1) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sx, sy); ctx.fillStyle = '#000'; ctx.font = `${s}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(e, 0, s * 0.05); ctx.restore(); }
+function drawItem(b, x, y, scale, rot) {
+  const s = L.cs, sc = (b.pop < 0 ? 0 : outElastic(Math.min(1, b.pop / 0.7))) * scale; if (sc <= 0.01) return;
+  const br = Math.sin(G.t * 2.5 + b.ph) * 0.04;
+  ctx.save(); ctx.translate(x, y + b.hop); ctx.rotate(rot); ctx.scale(sc, sc);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 0.42); g.addColorStop(0, `hsla(${(b.lv * 31 + 20) % 360},90%,92%,1)`); g.addColorStop(1, `hsla(${(b.lv * 31 + 20) % 360},80%,80%,0.0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, s * 0.44, 0, TAU); ctx.fill();
+  if (b.lv >= 9) { ctx.save(); ctx.rotate(G.t); ctx.strokeStyle = `hsla(${(G.t * 120) % 360},90%,70%,0.6)`; ctx.lineWidth = 2; ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.arc(0, 0, s * 0.42, 0, TAU); ctx.stroke(); ctx.restore(); }
+  emoji(A[b.lv][0], 0, 0, s * 0.6, 0, 1 + br, 1 - br);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(s * 0.3, s * 0.3, s * 0.11, 0, TAU); ctx.fill(); ctx.fillStyle = '#5f3dc4'; ctx.font = `${s * 0.15}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(b.lv + 1, s * 0.3, s * 0.31);
+  ctx.restore();
+}
+function render(dt) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#d7ecff'); g.addColorStop(1, '#ffe3f1'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (const b of bgBlobs) { b.y -= b.sp * dt; if (b.y < -0.3) { b.y = 1.3; b.x = Math.random(); } ctx.fillStyle = `hsla(${b.h},90%,85%,0.35)`; ctx.beginPath(); ctx.arc(b.x * W + Math.sin(G.t * 0.3 + b.h) * 30, b.y * H, b.r, 0, TAU); ctx.fill(); }
+  ctx.save(); if (G.shake > 0) ctx.translate(rand(-1, 1) * G.shake, rand(-1, 1) * G.shake);
+  // 판
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.shadowColor = 'rgba(80,60,160,0.2)'; ctx.shadowBlur = 24; rr(L.ox - 10, L.oy - 10, L.cs * L.c + 20, L.cs * L.r + 20, 24); ctx.fill(); ctx.shadowBlur = 0;
+  const d = G.drag, dit = d && board[d.i], hov = d && d.moved ? cellAt(d.x, d.y) : -1;
+  for (let i = 0; i < cells(); i++) {
+    const c = center(i), s = L.cs * 0.9, odd = ((i % L.c) + Math.floor(i / L.c)) % 2;
+    let col = odd ? 'rgba(255,255,255,0.75)' : 'rgba(240,235,255,0.75)';
+    if (hov === i && dit) { const t = board[i]; col = t && t.lv === dit.lv && i !== d.i && t.lv < MAXLV ? `rgba(255,220,120,${0.7 + 0.3 * Math.sin(G.t * 12)})` : 'rgba(200,230,255,0.9)'; }
+    ctx.fillStyle = col; rr(c.x - s / 2, c.y - s / 2, s, s, s * 0.22); ctx.fill();
+  }
+  if (dit && d.moved) board.forEach((b, i) => { if (b && i !== d.i && b.lv === dit.lv && b.lv < MAXLV) { const c = center(i); ctx.strokeStyle = `rgba(255,180,60,${0.5 + 0.5 * Math.sin(G.t * 10)})`; ctx.lineWidth = 3; rr(c.x - L.cs * 0.45, c.y - L.cs * 0.45, L.cs * 0.9, L.cs * 0.9, L.cs * 0.2); ctx.stroke(); } });
+  board.forEach((b, i) => { if (b && !(d && d.i === i && d.moved)) drawItem(b, b.ax, b.ay, 1, 0); });
+  for (const f of G.fx) { const k = f.t / 0.15, c = { x: (f.ax + f.bx) / 2, y: (f.ay + f.by) / 2 }; emoji(f.e, lerp(f.ax, f.bx, k), lerp(f.ay, f.by, k), L.cs * 0.6 * (1 - k * 0.6)); emoji(f.e, f.bx, f.by, L.cs * 0.6 * (1 - k * 0.6), k * 3); }
+  // 둥지 & 휴지통
+  const cap = 3 + M.up.cap, pr = M.chargeT / cd(M.up.spd), nh = Math.sin(G.nestHop * Math.PI) * 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(L.nest.x, L.nest.y, 44, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#ffc9de'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(L.nest.x, L.nest.y, 44, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = '#ff6fa6'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(L.nest.x, L.nest.y, 44, -Math.PI / 2, -Math.PI / 2 + pr * TAU); ctx.stroke();
+  emoji('🪺', L.nest.x, L.nest.y - nh + 4, 44, Math.sin(G.t * 3) * 0.05);
+  if (M.charges > 0) emoji('🥚', L.nest.x, L.nest.y - 14 - nh + Math.sin(G.t * 5) * 2, 20);
+  ctx.fillStyle = '#ff5c8a'; ctx.beginPath(); ctx.arc(L.nest.x + 32, L.nest.y - 32, 15, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = `14px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${M.charges}/${cap}`, L.nest.x + 32, L.nest.y - 31);
+  ctx.fillStyle = '#5f3dc4'; ctx.font = `13px ${FONT}`; ctx.fillText('눌러서 알 꺼내기', L.nest.x, L.nest.y + 58);
+  const over = d && d.moved && Math.hypot(d.x - L.trash.x, d.y - L.trash.y) < 50;
+  ctx.fillStyle = over ? 'rgba(255,200,200,0.95)' : 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(L.trash.x, L.trash.y, over ? 38 : 32, 0, TAU); ctx.fill();
+  emoji('🗑️', L.trash.x, L.trash.y, over ? 34 : 28, over ? Math.sin(G.t * 20) * 0.2 : 0);
+  if (dit && d.moved) { ctx.fillStyle = '#c2255c'; ctx.font = `12px ${FONT}`; ctx.fillText(`💗${fmt(sellVal(dit.lv))}`, L.trash.x, L.trash.y + 46); }
+  // 파티클
+  for (const p of G.parts) {
+    const a = clamp(p.life / p.max, 0, 1); ctx.save(); ctx.globalAlpha = a; ctx.translate(p.x, p.y);
+    if (p.k === 'star') { ctx.rotate(p.rot); starPath(0, 0, p.size, p.size * 0.45); ctx.fillStyle = p.col; ctx.fill(); }
+    else if (p.k === 'ring') { ctx.strokeStyle = p.col; ctx.lineWidth = 6 * a; ctx.beginPath(); ctx.arc(0, 0, p.size * (1 - a * a) + 1, 0, TAU); ctx.stroke(); }
+    else if (p.k === 'flash') { const g2 = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size); g2.addColorStop(0, 'rgba(255,255,255,0.95)'); g2.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, p.size, 0, TAU); ctx.fill(); }
+    else if (p.k === 'emo') { ctx.fillStyle = '#000'; ctx.font = `${p.size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.fillText(p.txt, 0, 0); }
+    else if (p.k === 'txt') { const s = Math.min(1, (p.max - p.life) * 8); ctx.scale(s, s); ctx.font = `${p.size}px ${FONT}`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(p.txt, 0, 0); ctx.fillStyle = p.col; ctx.fillText(p.txt, 0, 0); }
+    ctx.restore();
+  }
+  if (dit && d.moved) drawItem(dit, d.x, d.y - 10, 1.25, Math.sin(G.t * 18) * 0.12);
+  ctx.restore();
+  G.disp = lerp(G.disp, M.hearts, 1 - Math.exp(-dt * 8));
+  $('#hTxt').textContent = fmt(G.disp); const rt = rate(); $('#rate').textContent = '초당 💗' + (rt < 10 ? rt.toFixed(1) : fmt(rt));
+}
+addEventListener('resize', resize);
+addEventListener('pagehide', save); document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+(function offline() {
+  const el = clamp((Date.now() - M.last) / 1000, 0, 4 * 3600); if (el < 30) return;
+  const earn = Math.floor(rate() * el * 0.5); const add = Math.min(3 + M.up.cap - M.charges, Math.floor(el / cd(M.up.spd))); M.charges += Math.max(0, add);
+  if (earn > 0) { M.hearts += earn; setTimeout(() => { toast(`자리를 비운 동안 💗 ${fmt(earn)} 모였어요!`); bump(); }, 600); }
+})();
+let last = performance.now();
+function frame(now) { const dt = Math.min((now - last) / 1000, 0.05); last = now; update(dt); render(dt); requestAnimationFrame(frame); }
+setTimeout(() => toast('같은 동물끼리 끌어다 합쳐 보세요! ✨'), 500);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

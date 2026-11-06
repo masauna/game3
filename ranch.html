@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>해피 목장</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#4a3a22;--card:rgba(255,255,255,.9)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#7cc46a;font-family:'Jua','Malgun Gothic',sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none}
+  canvas{position:fixed;inset:0;display:block;touch-action:none}
+  #top{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:10px 12px;pointer-events:none;flex-wrap:wrap}
+  .pill{pointer-events:auto;text-decoration:none;color:var(--ink);background:var(--card);padding:7px 13px;border-radius:999px;font-size:15px;box-shadow:0 3px 0 rgba(0,0,0,.12);border:0;font-family:inherit;white-space:nowrap}
+  #coins{font-size:22px;padding:5px 16px;display:flex;align-items:center;gap:6px}
+  #coins.bump{animation:bump .3s}
+  @keyframes bump{40%{transform:scale(1.18)}}
+  #coinIc{display:inline-block;animation:spin 3s linear infinite}
+  @keyframes spin{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+  .sp{flex:1}
+  #bottom{position:fixed;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:10px;pointer-events:none}
+  .big{pointer-events:auto;font-family:inherit;border:0;background:#ffd43b;color:var(--ink);font-size:20px;padding:10px 26px;border-radius:20px;box-shadow:0 5px 0 #e0a800;cursor:pointer;transition:transform .15s}
+  .big:hover{transform:translateY(-3px)}.big:active{transform:translateY(3px);box-shadow:0 1px 0 #e0a800}
+  #sheet{position:fixed;left:50%;bottom:0;width:min(560px,100%);transform:translate(-50%,0);background:#fffaf0;border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.25);transition:transform .4s cubic-bezier(.3,1.3,.5,1);max-height:72vh;display:flex;flex-direction:column}
+  #sheet.closed{transform:translate(-50%,110%)}
+  .tabs{display:flex;gap:6px;padding:12px 12px 6px}
+  .tabs button{font-family:inherit;border:0;background:#f1e6cf;color:var(--ink);font-size:16px;padding:8px 12px;border-radius:14px;cursor:pointer;flex:1}
+  .tabs button.on{background:#ffd43b;box-shadow:0 3px 0 #e0a800}
+  .tabs #closeSheet{flex:0 0 44px;background:#eee}
+  #list{overflow:auto;padding:6px 12px 18px;display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 2px 0 rgba(0,0,0,.06);animation:slide .35s backwards}
+  @keyframes slide{from{opacity:0;transform:translateY(16px)}}
+  .item .em{font-size:36px;width:46px;text-align:center}
+  .item .info{flex:1;line-height:1.3}
+  .item .info small{display:block;color:#8a7a5a;font-size:13px}
+  .item button{font-family:inherit;border:0;background:#8ce99a;color:#1f5130;font-size:15px;padding:9px 12px;border-radius:12px;cursor:pointer;box-shadow:0 3px 0 #51cf66;white-space:nowrap}
+  .item button:disabled{background:#e9ecef;color:#adb5bd;box-shadow:0 3px 0 #ced4da;cursor:not-allowed}
+  .item.lock{opacity:.55}
+  #modal{position:fixed;inset:0;background:rgba(30,40,20,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+  #modal.gone{display:none}
+  .card{background:#fffaf0;border-radius:26px;padding:24px 28px;text-align:center;max-width:340px;animation:cardIn .5s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes cardIn{from{transform:scale(.3) rotate(-10deg);opacity:0}}
+  .card .em{font-size:64px;animation:bob 1.2s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-10px)}}
+  .card h2{margin:6px 0}
+  #toasts{position:fixed;top:30%;left:0;right:0;display:flex;flex-direction:column;align-items:center;pointer-events:none;gap:6px}
+  .toast{background:#fff;padding:9px 18px;border-radius:999px;font-size:18px;box-shadow:0 6px 20px rgba(0,0,0,.18);animation:pop 2.4s forwards}
+  @keyframes pop{0%{transform:scale(0);opacity:0}12%{transform:scale(1.12);opacity:1}20%{transform:scale(1)}85%{opacity:1}100%{opacity:0;transform:translateY(-24px)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+  <a class="pill" href="index.html">← 게임 목록</a>
+  <div class="pill" id="coins"><span id="coinIc">🪙</span><b id="coinTxt">0</b></div>
+  <div class="pill" id="rate">초당 0</div>
+  <div class="pill" id="count" style="margin-left:auto">🐾 0/6</div>
+  <div class="pill" id="clock">☀️ 낮</div>
+</div>
+<div id="bottom"><button class="big" id="shopBtn">🛒 상점</button></div>
+<div id="sheet" class="closed">
+  <div class="tabs"><button data-tab="buy" class="on">🐣 동물</button><button data-tab="up">⬆️ 강화</button><button data-tab="farm">🏡 목장</button><button id="closeSheet">✕</button></div>
+  <div id="list"></div>
+</div>
+<div id="modal" class="gone"><div class="card"><div class="em">🌙</div><h2>어서 와요!</h2><p id="mtxt"></p><button class="big" id="mok">받기</button></div></div>
+<div id="toasts"></div>
+<script>
+'use strict';
+const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t;
+const outCubic = t => 1 - Math.pow(1 - t, 3);
+const FONT = '"Jua","Malgun Gothic",sans-serif', EMOJI = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+const $ = s => document.querySelector(s);
+let AC = null, master = null;
+function initAudio() { if (AC) { if (AC.state === 'suspended') AC.resume(); return; } try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.3; master.connect(AC.destination); } catch (e) { AC = null; } }
+function tone(f, d, type = 'sine', v = 0.2, slide = 0, delay = 0) { if (!AC) return; const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + d); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02); }
+
+const T = {
+  chicken: { e: '🐔', name: '닭', price: 50, prod: '🥚', pname: '달걀', val: 5, time: 6, size: 34, voice: [900, 0.6, 'square'] },
+  rabbit: { e: '🐇', name: '토끼', price: 180, prod: '🥕', pname: '당근', val: 16, time: 9, size: 34, voice: [1200, 1.3, 'sine'] },
+  pig: { e: '🐖', name: '돼지', price: 500, prod: '🍄', pname: '송로버섯', val: 45, time: 13, size: 42, voice: [260, 0.7, 'sawtooth'] },
+  sheep: { e: '🐑', name: '양', price: 1400, prod: '🧶', pname: '양털', val: 120, time: 18, size: 44, voice: [420, 0.9, 'triangle'] },
+  cow: { e: '🐄', name: '소', price: 4000, prod: '🥛', pname: '우유', val: 320, time: 24, size: 50, voice: [160, 0.8, 'sawtooth'] },
+};
+const ORDER = Object.keys(T);
+const FENCE = [{ cap: 6, cost: 0, f: 0.6 }, { cap: 10, cost: 300, f: 0.7 }, { cap: 15, cost: 1500, f: 0.8 }, { cap: 22, cost: 6000, f: 0.89 }, { cap: 30, cost: 20000, f: 0.96 }];
+const DOG = [{ cost: 0, sp: 0 }, { cost: 800, sp: 90 }, { cost: 3000, sp: 140 }, { cost: 10000, sp: 210 }];
+const DAY = 180;
+
+const DEF = { coins: 120, animals: [{ t: 'chicken', p: 2 }, { t: 'chicken', p: 4 }], lv: { chicken: 1, rabbit: 1, pig: 1, sheep: 1, cow: 1 }, fence: 0, dog: 0, prods: [], last: Date.now(), clock: 10 };
+function load() { try { const s = JSON.parse(localStorage.getItem('pets_ranch')); if (s && typeof s.coins === 'number') return Object.assign(JSON.parse(JSON.stringify(DEF)), s); } catch (e) { } return JSON.parse(JSON.stringify(DEF)); }
+let R = load();
+
+const cv = $('#c'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, F = { x: 0, y: 0, w: 1, h: 1 }, bg = null, coinTarget = { x: 60, y: 30 };
+function field() { const top = 70, bot = 80, ah = H - top - bot, f = FENCE[R.fence].f; const w = W * f, h = ah * f; return { x: (W - w) / 2, y: top + (ah - h) / 2, w, h }; }
+function resize() {
+  if (!innerWidth || !innerHeight) return;
+  const old = F; DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  F = field(); for (const a of animals) remap(a, old); for (const p of prods) remap(p, old); if (dog) remap(dog, old);
+  buildBG(); const r = $('#coinIc').getBoundingClientRect(); coinTarget = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+function remap(o, old) { if (!old || old.w <= 1) return; o.x = F.x + (o.x - old.x) / old.w * F.w; o.y = F.y + (o.y - old.y) / old.h * F.h; if (o.tx !== undefined) { o.tx = o.x; o.ty = o.y; } }
+// 시드 랜덤
+function srand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function buildBG() {
+  bg = document.createElement('canvas'); bg.width = cv.width; bg.height = cv.height; const g = bg.getContext('2d'); g.scale(DPR, DPR);
+  const r = srand(7);
+  g.fillStyle = '#7cc46a'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < W * H / 900; i++) { g.fillStyle = r() < 0.5 ? 'rgba(60,140,60,0.25)' : 'rgba(170,230,130,0.25)'; const x = r() * W, y = r() * H; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 8); g.lineTo(x + 6, y); g.fill(); }
+  // 연못
+  g.fillStyle = '#5fb8e8'; g.beginPath(); g.ellipse(W * 0.08, H * 0.88, 70, 34, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.ellipse(W * 0.08 - 20, H * 0.88 - 8, 22, 6, 0, 0, TAU); g.fill();
+  // 밭 내부
+  g.fillStyle = '#a8e07e'; g.beginPath(); g.roundRect ? g.roundRect(F.x, F.y, F.w, F.h, 18) : g.rect(F.x, F.y, F.w, F.h); g.fill();
+  g.save(); g.beginPath(); g.rect(F.x, F.y, F.w, F.h); g.clip();
+  for (let x = F.x; x < F.x + F.w; x += 60) { g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x, F.y, 30, F.h); }
+  g.strokeStyle = 'rgba(200,160,100,0.5)'; g.lineWidth = 22; g.lineCap = 'round'; g.beginPath(); g.moveTo(F.x - 10, F.y + F.h * 0.7); g.bezierCurveTo(F.x + F.w * 0.3, F.y + F.h * 0.5, F.x + F.w * 0.6, F.y + F.h * 0.95, F.x + F.w + 10, F.y + F.h * 0.75); g.stroke();
+  g.font = `14px ${EMOJI}`; g.textAlign = 'center';
+  for (let i = 0; i < F.w * F.h / 9000; i++) g.fillText(r() < 0.5 ? '🌼' : r() < 0.5 ? '🌷' : '🌱', F.x + r() * F.w, F.y + r() * F.h);
+  g.restore();
+  // 울타리
+  g.strokeStyle = '#a0703c'; g.lineWidth = 5;
+  for (const off of [6, 16]) { g.beginPath(); g.rect(F.x - 4, F.y - 4 + off - 10, F.w + 8, F.h + 8); g.stroke(); }
+  g.fillStyle = '#c08a50';
+  const post = (x, y) => { g.fillRect(x - 4, y - 16, 8, 22); g.fillStyle = '#8a5a2b'; g.fillRect(x - 4, y - 16, 8, 3); g.fillStyle = '#c08a50'; };
+  for (let x = F.x - 4; x <= F.x + F.w + 4; x += 36) { post(x, F.y - 4); post(x, F.y + F.h + 8); }
+  for (let y = F.y + 30; y < F.y + F.h; y += 36) { post(F.x - 4, y); post(F.x + F.w + 4, y); }
+  // 나무
+  g.font = `42px ${EMOJI}`; g.textBaseline = 'bottom';
+  for (let i = 0; i < 40; i++) { const x = r() * W, y = 60 + r() * (H - 60); if (x > F.x - 40 && x < F.x + F.w + 40 && y > F.y - 30 && y < F.y + F.h + 50) continue; g.fillText(r() < 0.7 ? '🌳' : '🌲', x, y); }
+  g.font = `48px ${EMOJI}`; if (F.x > 70) g.fillText('🏡', F.x - 40, F.y + 50);
+}
+
+// ---------- 런타임 객체 ----------
+let animals = [], prods = [], flyers = [], parts = [], dog = null, uid = 1;
+const G = { t: 0, combo: 0, comboT: 0, dispCoins: R.coins, save: 3, shopTab: 'buy', down: false, collectedThisPress: false, night: 0 };
+const clouds = [0, 1, 2].map(() => ({ x: Math.random(), y: Math.random(), s: rand(0.8, 1.4), sp: rand(0.012, 0.025) }));
+const flies = Array.from({ length: 14 }, () => ({ x: Math.random(), y: Math.random(), p: Math.random() * TAU }));
+const butterflies = [0, 1].map(() => ({ x: Math.random(), y: Math.random(), p: Math.random() * TAU }));
+function lvl(t) { return R.lv[t] || 1; }
+function prodTime(t) { return T[t].time / (1 + 0.3 * (lvl(t) - 1)); }
+function prodVal(t) { return Math.round(T[t].val * (1 + 0.25 * (lvl(t) - 1))); }
+function rate() { return animals.reduce((s, a) => s + prodVal(a.t) / prodTime(a.t), 0); }
+function makeAnimal(t, p = 0, drop = false) { const a = { id: uid++, t, x: rand(F.x + 30, F.x + F.w - 30), y: rand(F.y + 30, F.y + F.h - 20), wait: rand(0, 2), prodT: p, dir: Math.random() < 0.5 ? -1 : 1, ph: 0, seed: Math.random() * 10, jz: drop ? 420 : 0, jv: 0, bump: 0, cd: 0, moving: false }; a.tx = a.x; a.ty = a.y; animals.push(a); return a; }
+function makeDog() { if (R.dog > 0 && !dog) dog = { x: F.x + F.w / 2, y: F.y + F.h / 2, dir: 1, ph: 0, tgt: null, wait: 0, tx: F.x + F.w / 2, ty: F.y + F.h / 2 }; }
+
+resize();
+R.animals.forEach(a => makeAnimal(a.t, a.p || 0));
+R.prods.forEach(p => prods.push({ e: p.e, val: p.val, owner: p.owner || 0, x: F.x + p.fx * F.w, y: F.y + p.fy * F.h, z: 0, vz: 0, t: 0 }));
+makeDog();
+
+function save() {
+  R.animals = animals.map(a => ({ t: a.t, p: a.prodT })); R.prods = prods.filter(p => !p.fly).map(p => ({ e: p.e, val: p.val, fx: (p.x - F.x) / F.w, fy: (p.y - F.y) / F.h }));
+  R.last = Date.now(); R.clock = G.t + (R.clockBase || 0);
+  try { localStorage.setItem('pets_ranch', JSON.stringify(R)); } catch (e) { }
+}
+R.clockBase = R.clock || 10;
+
+// ---------- UI ----------
+function toast(m) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = m; $('#toasts').appendChild(d); setTimeout(() => d.remove(), 2500); }
+function bumpCoins() { const c = $('#coins'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
+function fmt(n) { n = Math.floor(n); if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; return n.toLocaleString(); }
+function animalPrice(t) { const n = animals.filter(a => a.t === t).length; return Math.round(T[t].price * Math.pow(1.15, n)); }
+function upCost(t) { return Math.round(T[t].price * 1.2 * Math.pow(1.6, lvl(t) - 1)); }
+function owned(t) { return animals.some(a => a.t === t); }
+function renderShop() {
+  const L = $('#list'); let h = '';
+  if (G.shopTab === 'buy') {
+    ORDER.forEach((t, i) => {
+      const d = T[t], lock = i > 0 && !owned(ORDER[i - 1]), price = animalPrice(t);
+      h += `<div class="item ${lock ? 'lock' : ''}" style="animation-delay:${i * 0.04}s"><span class="em">${lock ? '❔' : d.e}</span><div class="info"><b>${lock ? '???' : d.name}</b><small>${lock ? T[ORDER[i - 1]].name + '을(를) 먼저 키우면 열려요' : `${d.prod} ${d.pname} · ${prodVal(t)}코인 / ${prodTime(t).toFixed(1)}초`}</small></div><button data-act="buy:${t}" ${lock || R.coins < price ? 'disabled' : ''}>🪙 ${fmt(price)}</button></div>`;
+    });
+  } else if (G.shopTab === 'up') {
+    ORDER.forEach((t, i) => {
+      if (!owned(t)) return; const d = T[t], max = lvl(t) >= 10, c = upCost(t);
+      h += `<div class="item" style="animation-delay:${i * 0.04}s"><span class="em">${d.e}</span><div class="info"><b>${d.name} Lv.${lvl(t)}</b><small>${max ? '최고 레벨!' : `생산 속도·가치 UP → ${(T[t].time / (1 + 0.3 * lvl(t))).toFixed(1)}초, ${Math.round(T[t].val * (1 + 0.25 * lvl(t)))}코인`}</small></div><button data-act="up:${t}" ${max || R.coins < c ? 'disabled' : ''}>${max ? 'MAX' : '🪙 ' + fmt(c)}</button></div>`;
+    });
+    if (!h) h = '<div class="item"><div class="info">먼저 동물을 키워 보세요!</div></div>';
+  } else {
+    const nf = FENCE[R.fence + 1], nd = DOG[R.dog + 1];
+    h += `<div class="item"><span class="em">🪵</span><div class="info"><b>울타리 확장 (${R.fence + 1}단계)</b><small>${nf ? `수용 ${FENCE[R.fence].cap} → ${nf.cap}마리` : '최대 크기예요!'}</small></div><button data-act="fence" ${!nf || R.coins < nf.cost ? 'disabled' : ''}>${nf ? '🪙 ' + fmt(nf.cost) : 'MAX'}</button></div>`;
+    h += `<div class="item" style="animation-delay:.05s"><span class="em">🐕</span><div class="info"><b>수확 도우미 바둑이 ${R.dog ? 'Lv.' + R.dog : ''}</b><small>${nd ? (R.dog ? '더 빨리 달려요' : '떨어진 생산물을 자동으로 주워요') : '최고 속도!'}</small></div><button data-act="dog" ${!nd || R.coins < nd.cost ? 'disabled' : ''}>${nd ? '🪙 ' + fmt(nd.cost) : 'MAX'}</button></div>`;
+  }
+  L.innerHTML = h;
+}
+document.querySelectorAll('.tabs [data-tab]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.tabs [data-tab]').forEach(x => x.classList.toggle('on', x === b)); G.shopTab = b.dataset.tab; renderShop(); tone(600, 0.06, 'triangle', 0.1); }));
+$('#shopBtn').addEventListener('click', () => { initAudio(); $('#sheet').classList.remove('closed'); renderShop(); tone(700, 0.1, 'triangle', 0.12, 1.4); });
+$('#closeSheet').addEventListener('click', () => $('#sheet').classList.add('closed'));
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b || b.disabled) return; initAudio();
+  const [act, t] = b.dataset.act.split(':');
+  if (act === 'buy') {
+    if (animals.length >= FENCE[R.fence].cap) { toast('울타리가 꽉 찼어요! 🪵 목장 탭에서 확장해요'); tone(200, 0.2, 'square', 0.08); return; }
+    const p = animalPrice(t); if (R.coins < p) return; R.coins -= p; makeAnimal(t, 0, true); fanfare(); toast(`${T[t].e} ${T[t].name}(이)가 목장에 왔어요!`);
+  } else if (act === 'up') { const c = upCost(t); if (R.coins < c || lvl(t) >= 10) return; R.coins -= c; R.lv[t] = lvl(t) + 1; fanfare(); for (const a of animals) if (a.t === t) { a.bump = 1; sparkle(a.x, a.y - 20, 10, '#ffd43b'); } toast(`${T[t].e} ${T[t].name} Lv.${R.lv[t]}!`); }
+  else if (act === 'fence') { const nf = FENCE[R.fence + 1]; if (!nf || R.coins < nf.cost) return; R.coins -= nf.cost; const old = F; R.fence++; F = field(); for (const a of animals) remap(a, old); for (const p of prods) remap(p, old); if (dog) remap(dog, old); buildBG(); fanfare(); toast('🪵 울타리가 넓어졌어요!'); G.shakeF = 1; }
+  else if (act === 'dog') { const nd = DOG[R.dog + 1]; if (!nd || R.coins < nd.cost) return; R.coins -= nd.cost; R.dog++; makeDog(); fanfare(); toast(R.dog === 1 ? '🐕 바둑이가 도와주러 왔어요!' : `🐕 바둑이 Lv.${R.dog}`); }
+  renderShop(); save();
+});
+function fanfare() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'triangle', 0.14, 0, i * 0.07)); }
+
+// ---------- 파티클 ----------
+function addP(o) { if (parts.length < 400) parts.push(Object.assign({ vx: 0, vy: 0, life: 1, max: 1, g: 0, size: 20, rot: 0, vr: 0 }, o)); }
+function sparkle(x, y, n, col) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = rand(60, 200); addP({ k: 'star', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.4, 0.8), max: 0.8, size: rand(4, 8), col, vr: rand(-6, 6), drag: 0.92 }); } }
+function dust(x, y) { for (let i = 0; i < 12; i++) { const a = rand(Math.PI, TAU); addP({ k: 'dust', x, y, vx: Math.cos(a) * rand(60, 160), vy: Math.sin(a) * rand(10, 50), life: 0.7, max: 0.7, size: rand(6, 12), drag: 0.9 }); } }
+function txt(x, y, s, col = '#fff', size = 18) { addP({ k: 'txt', x, y, vy: -70, life: 0.9, max: 0.9, txt: s, col, size }); }
+
+// ---------- 수확 ----------
+function collect(p, byDog) {
+  if (p.fly) return; p.fly = true;
+  G.combo = G.comboT > 0 ? G.combo + 1 : 0; G.comboT = 0.7;
+  tone(600 * Math.pow(1.06, Math.min(G.combo, 20)), 0.09, 'triangle', 0.13, 1.3);
+  txt(p.x, p.y - 20, '+' + p.val, '#fff3bf', 18);
+  flyers.push({ e: p.e, sx: p.x, sy: p.y - p.z, t: 0, dur: 0.7 + Math.random() * 0.15, val: p.val, size: 26 });
+  p.dead = true; if (byDog) sparkle(p.x, p.y, 5, '#fff');
+}
+function petAnimal(a) {
+  a.jv = 300; a.jz = 0.1; tone(T[a.t].voice[0], 0.18, T[a.t].voice[2], 0.1, T[a.t].voice[1]);
+  for (let i = 0; i < 3; i++) addP({ k: 'emo', x: a.x + rand(-12, 12), y: a.y - 30, vx: rand(-30, 30), vy: rand(-110, -70), life: 1, max: 1, txt: '💗', size: 18 });
+  if (a.cd <= 0) { a.prodT += prodTime(a.t) * 0.3; a.cd = 4; txt(a.x, a.y - 44, '쑥쑥!', '#ff8fb1', 16); }
+}
+
+// ---------- 입력 ----------
+function tryCollectAt(x, y) { let got = false; for (const p of prods) if (!p.fly && Math.hypot(p.x - x, p.y - p.z - y) < 34) { collect(p); got = true; } return got; }
+cv.addEventListener('pointerdown', e => {
+  initAudio(); $('#sheet').classList.add('closed'); G.down = true; const x = e.clientX, y = e.clientY;
+  if (tryCollectAt(x, y)) return;
+  let best = null, bd = 1e9; for (const a of animals) { const d = Math.hypot(a.x - x, a.y - a.jz - 10 - y); if (d < T[a.t].size * 0.75 && d < bd) { bd = d; best = a; } }
+  if (best) petAnimal(best); else if (dog && Math.hypot(dog.x - x, dog.y - 10 - y) < 30) { dog.jv = 320; dog.jz = 0.1; tone(500, 0.1, 'square', 0.08, 0.7); tone(450, 0.1, 'square', 0.08, 0.7, 0.12); }
+});
+addEventListener('pointermove', e => { if (G.down) tryCollectAt(e.clientX, e.clientY); });
+addEventListener('pointerup', () => G.down = false);
+
+// ---------- 업데이트 ----------
+function dayInfo() { const p = ((G.t + R.clockBase) % DAY) / DAY; let d = 0; if (p > 0.6 && p < 0.7) d = (p - 0.6) / 0.1; else if (p >= 0.7 && p < 0.92) d = 1; else if (p >= 0.92) d = 1 - (p - 0.92) / 0.08; return { p, dark: d, night: d > 0.5, sunset: p > 0.55 && p < 0.7 ? Math.sin((p - 0.55) / 0.15 * Math.PI) : 0 }; }
+function update(dt) {
+  G.t += dt; const day = dayInfo(); G.night = day.dark;
+  for (const a of animals) {
+    const d = T[a.t];
+    a.cd -= dt; a.bump = Math.max(0, a.bump - dt * 2);
+    if (a.jz > 0 || a.jv !== 0) { a.jv -= 1400 * dt; a.jz += a.jv * dt; if (a.jz <= 0) { if (a.jv < -500) { dust(a.x, a.y + d.size * 0.35); tone(140, 0.12, 'sine', 0.15, 0.6); a.jv = -a.jv * 0.35; a.jz = 0.1; } else { a.jz = 0; a.jv = 0; } } }
+    if (!day.night) {
+      if (a.wait > 0) { a.wait -= dt; a.moving = false; }
+      else { const dx = a.tx - a.x, dy = a.ty - a.y, dl = Math.hypot(dx, dy); if (dl < 4) { a.wait = rand(1, 4); a.tx = rand(F.x + 24, F.x + F.w - 24); a.ty = rand(F.y + 24, F.y + F.h - 14); } else { const sp = 34 + d.size * 0.3; a.x += dx / dl * sp * dt; a.y += dy / dl * sp * dt; a.dir = dx > 0 ? 1 : -1; a.moving = true; a.ph += dt * 11; } }
+    } else a.moving = false;
+    const mine = prods.filter(p => p.owner === a.id && !p.fly).length;
+    a.full = mine >= 3;
+    if (!a.full && a.jz <= 0) { a.prodT += dt * (day.night ? 0.5 : 1); if (a.prodT >= prodTime(a.t)) { a.prodT = 0; prods.push({ e: d.prod, val: prodVal(a.t), owner: a.id, x: a.x + rand(-18, 18), y: a.y + 8, z: 10, vz: rand(220, 300), vx: rand(-40, 40), t: 0 }); a.jv = 200; a.jz = 0.1; tone(800, 0.06, 'sine', 0.08, 1.5); } }
+  }
+  for (const p of prods) { p.t += dt; if (p.vz || p.z > 0) { p.vz -= 900 * dt; p.z += p.vz * dt; p.x += (p.vx || 0) * dt; if (p.z <= 0) { p.z = 0; p.vz = p.vz < -80 ? -p.vz * 0.45 : 0; p.vx = (p.vx || 0) * 0.5; } } p.x = clamp(p.x, F.x + 10, F.x + F.w - 10); p.y = clamp(p.y, F.y + 10, F.y + F.h); }
+  if (dog) {
+    dog.jv = dog.jv || 0; dog.jz = dog.jz || 0; if (dog.jz > 0 || dog.jv) { dog.jv -= 1400 * dt; dog.jz += dog.jv * dt; if (dog.jz <= 0) { dog.jz = 0; dog.jv = 0; } }
+    if (!dog.tgt || dog.tgt.dead) { let b = null, bd = 1e12; for (const p of prods) if (!p.fly && p.z <= 0) { const d = (p.x - dog.x) ** 2 + (p.y - dog.y) ** 2; if (d < bd) { bd = d; b = p; } } dog.tgt = b; }
+    let tx = dog.tx, ty = dog.ty;
+    if (dog.tgt) { tx = dog.tgt.x; ty = dog.tgt.y; } else if (Math.hypot(tx - dog.x, ty - dog.y) < 5) { dog.tx = rand(F.x + 30, F.x + F.w - 30); dog.ty = rand(F.y + 30, F.y + F.h - 20); }
+    const dx = tx - dog.x, dy = ty - dog.y, dl = Math.hypot(dx, dy), sp = dog.tgt ? DOG[R.dog].sp : 40;
+    if (dl > 3) { dog.x += dx / dl * Math.min(sp * dt, dl); dog.y += dy / dl * Math.min(sp * dt, dl); dog.dir = dx > 0 ? 1 : -1; dog.ph += dt * 14; dog.moving = true; } else dog.moving = false;
+    if (dog.tgt && dl < 14) { collect(dog.tgt, true); dog.tgt = null; }
+  }
+  prods = prods.filter(p => !p.dead);
+  for (const f of flyers) { f.t += dt; if (f.t >= f.dur && !f.done) { f.done = true; R.coins += f.val; bumpCoins(); } }
+  flyers = flyers.filter(f => !f.done);
+  G.comboT -= dt;
+  for (const p of parts) { p.life -= dt; p.vy += p.g * dt; if (p.drag) { const k = Math.pow(p.drag, dt * 60); p.vx *= k; p.vy *= k; } p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const c of clouds) { c.x += c.sp * dt; if (c.x > 1.3) { c.x = -0.3; c.y = Math.random(); } }
+  G.save -= dt; if (G.save <= 0) { G.save = 4; save(); }
+}
+
+// ---------- 그리기 ----------
+function emoji(e, x, y, size, flip = 1, sx = 1, sy = 1) { ctx.save(); ctx.translate(x, y); ctx.scale(flip * sx, sy); ctx.fillStyle = '#000'; ctx.font = `${size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(e, 0, 0); ctx.restore(); }
+function shadow(x, y, w) { ctx.fillStyle = 'rgba(0,40,0,0.2)'; ctx.beginPath(); ctx.ellipse(x, y, w, w * 0.32, 0, 0, TAU); ctx.fill(); }
+function starPath(x, y, ro, ri) { ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, r = i % 2 ? ri : ro; ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } ctx.closePath(); }
+function render(dt) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.drawImage(bg, 0, 0, W, H);
+  const day = dayInfo();
+  // 정렬 그리기
+  const list = [];
+  for (const p of prods) list.push({ y: p.y, k: 'p', o: p }); for (const a of animals) list.push({ y: a.y, k: 'a', o: a }); if (dog) list.push({ y: dog.y, k: 'd', o: dog });
+  list.sort((a, b) => a.y - b.y);
+  for (const it of list) {
+    const o = it.o;
+    if (it.k === 'p') { shadow(o.x, o.y + 8, 10); const bob = o.z <= 0 ? Math.sin(G.t * 4 + o.x) * 2 : 0; emoji(o.e, o.x, o.y - o.z - 4 + bob, 26, 1, 1 + Math.sin(G.t * 6 + o.y) * 0.04, 1); if (Math.sin(G.t * 3 + o.x * 0.1) > 0.97) { ctx.fillStyle = '#fff'; starPath(o.x + 10, o.y - o.z - 16, 6, 2); ctx.fill(); } }
+    else if (it.k === 'a') {
+      const d = T[o.t], s = d.size * (1 + o.bump * 0.3), hop = o.moving ? Math.abs(Math.sin(o.ph)) * 6 : 0;
+      const sq = o.moving ? Math.sin(o.ph * 2) * 0.06 : (G.night > 0.5 ? Math.sin(G.t * 1.5 + o.seed) * 0.04 : Math.sin(G.t * 2.4 + o.seed) * 0.03);
+      shadow(o.x, o.y + s * 0.36, s * 0.42 * (1 - Math.min(o.jz / 400, 0.6)));
+      emoji(d.e, o.x, o.y - hop - o.jz, s, o.dir > 0 ? -1 : 1, 1 + sq, 1 - sq);
+      if (o.full) emoji('❗', o.x + s * 0.4, o.y - s * 0.6 + Math.sin(G.t * 8) * 3, 16);
+      else if (o.jz <= 0) { const pr = o.prodT / prodTime(o.t); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(o.x, o.y - s * 0.75, 6, -Math.PI / 2, -Math.PI / 2 + pr * TAU); ctx.stroke(); }
+      if (G.night > 0.5 && Math.sin(G.t * 1.2 + o.seed) > 0.3) { ctx.font = `14px ${FONT}`; ctx.fillStyle = '#e7f5ff'; ctx.fillText('z', o.x + s * 0.35, o.y - s * 0.55 - ((G.t * 10 + o.seed * 7) % 14)); }
+    } else {
+      const hop = o.moving ? Math.abs(Math.sin(o.ph)) * 5 : 0; shadow(o.x, o.y + 13, 15); emoji('🐕', o.x, o.y - hop - (o.jz || 0), 36, o.dir > 0 ? -1 : 1);
+    }
+  }
+  // 나비
+  if (day.dark < 0.5) for (const b of butterflies) { b.p += dt; const x = F.x + ((b.x + G.t * 0.02) % 1) * F.w, y = F.y + b.y * F.h + Math.sin(b.p * 2) * 30; emoji('🦋', x, y, 18, 1, Math.abs(Math.sin(b.p * 12)) * 0.6 + 0.4, 1); }
+  // 구름 그림자
+  for (const c of clouds) { const x = c.x * W, y = c.y * H, s = 80 * c.s; ctx.fillStyle = 'rgba(0,30,0,0.08)'; ctx.beginPath(); ctx.ellipse(x, y, s, s * 0.45, 0, 0, TAU); ctx.ellipse(x + s * 0.7, y + 10, s * 0.6, s * 0.35, 0, 0, TAU); ctx.ellipse(x - s * 0.6, y + 8, s * 0.5, s * 0.3, 0, 0, TAU); ctx.fill(); }
+  // 노을 / 밤
+  if (day.sunset > 0) { ctx.fillStyle = `rgba(255,140,60,${day.sunset * 0.18})`; ctx.fillRect(0, 0, W, H); }
+  if (day.dark > 0) {
+    ctx.fillStyle = `rgba(12,18,60,${day.dark * 0.5})`; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const c of [[F.x - 4, F.y - 10], [F.x + F.w + 4, F.y - 10], [F.x - 4, F.y + F.h], [F.x + F.w + 4, F.y + F.h]]) { const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], 90); g.addColorStop(0, `rgba(255,200,100,${0.45 * day.dark})`); g.addColorStop(1, 'rgba(255,200,100,0)'); ctx.fillStyle = g; ctx.fillRect(c[0] - 90, c[1] - 90, 180, 180); }
+    for (const f of flies) { f.p += dt; const x = F.x + (f.x + Math.sin(f.p * 0.7) * 0.05) * F.w, y = F.y + (f.y + Math.cos(f.p * 0.9) * 0.05) * F.h, a = day.dark * (0.5 + 0.5 * Math.sin(f.p * 3)); const g = ctx.createRadialGradient(x, y, 0, x, y, 10); g.addColorStop(0, `rgba(220,255,120,${a})`); g.addColorStop(1, 'rgba(220,255,120,0)'); ctx.fillStyle = g; ctx.fillRect(x - 10, y - 10, 20, 20); }
+    ctx.globalCompositeOperation = 'source-over';
+    for (const c of [[F.x - 4, F.y - 10], [F.x + F.w + 4, F.y - 10], [F.x - 4, F.y + F.h], [F.x + F.w + 4, F.y + F.h]]) emoji('🏮', c[0], c[1], 20);
+  }
+  // 파티클
+  for (const p of parts) {
+    const a = clamp(p.life / p.max, 0, 1); ctx.save(); ctx.globalAlpha = a; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    if (p.k === 'star') { starPath(0, 0, p.size, p.size * 0.45); ctx.fillStyle = p.col; ctx.fill(); }
+    else if (p.k === 'dust') { ctx.fillStyle = 'rgba(230,210,170,0.8)'; ctx.beginPath(); ctx.arc(0, 0, p.size * (1.4 - a * 0.6), 0, TAU); ctx.fill(); }
+    else if (p.k === 'emo') { ctx.fillStyle = '#000'; ctx.font = `${p.size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.fillText(p.txt, 0, 0); }
+    else if (p.k === 'txt') { const s = Math.min(1, (p.max - p.life) * 8); ctx.scale(s, s); ctx.font = `${p.size}px ${FONT}`; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,40,10,0.7)'; ctx.strokeText(p.txt, 0, 0); ctx.fillStyle = p.col; ctx.fillText(p.txt, 0, 0); }
+    ctx.restore();
+  }
+  // 날아가는 생산물
+  for (const f of flyers) { if (f.t < 0) continue; const k = outCubic(Math.min(1, f.t / f.dur)), x = lerp(f.sx, coinTarget.x, k), y = lerp(f.sy, coinTarget.y, k) - Math.sin(k * Math.PI) * 120, s = f.size * (1 + Math.sin(k * Math.PI) * 0.5) * (1 - k * 0.5); emoji(f.e, x, y, s); }
+  // HUD
+  G.dispCoins = lerp(G.dispCoins, R.coins, 1 - Math.exp(-dt * 8)); if (Math.abs(G.dispCoins - R.coins) < 1) G.dispCoins = R.coins;
+  $('#coinTxt').textContent = fmt(G.dispCoins);
+  $('#rate').textContent = '초당 ≈ ' + rate().toFixed(1);
+  $('#count').textContent = `🐾 ${animals.length}/${FENCE[R.fence].cap}`;
+  $('#clock').textContent = day.night ? '🌙 밤 (생산 ½)' : day.sunset > 0.3 ? '🌇 저녁' : '☀️ 낮';
+}
+let lastShop = 0;
+let last = performance.now();
+function frame(now) { const dt = Math.min((now - last) / 1000, 0.05); last = now; update(dt); render(dt); if (!$('#sheet').classList.contains('closed') && now - lastShop > 500) { lastShop = now; const sc = $('#list').scrollTop; renderShop(); $('#list').querySelectorAll('.item').forEach(i => i.style.animation = 'none'); $('#list').scrollTop = sc; } requestAnimationFrame(frame); }
+addEventListener('resize', resize);
+addEventListener('pagehide', save); document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+// 오프라인 수익
+(function () {
+  const el = clamp((Date.now() - R.last) / 1000, 0, 4 * 3600); if (el < 30) return;
+  const earn = Math.floor(rate() * el * (R.dog ? 0.6 : 0.3)); if (earn < 1) return;
+  $('#mtxt').innerHTML = `자리를 비운 ${el < 3600 ? Math.round(el / 60) + '분' : (el / 3600).toFixed(1) + '시간'} 동안<br>동물들이 <b>🪙 ${fmt(earn)}</b> 코인을 벌었어요!`;
+  $('#modal').classList.remove('gone');
+  $('#mok').onclick = () => { initAudio(); $('#modal').classList.add('gone'); const n = Math.min(24, 6 + Math.floor(Math.log2(earn + 1))); for (let i = 0; i < n; i++) flyers.push({ e: '🪙', sx: W / 2 + rand(-60, 60), sy: H / 2 + rand(-40, 40), t: -i * 0.05, dur: 0.8, val: i === n - 1 ? earn - Math.floor(earn / n) * (n - 1) : Math.floor(earn / n), size: 28 }); fanfare(); };
+})();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
